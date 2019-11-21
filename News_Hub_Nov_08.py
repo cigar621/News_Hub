@@ -14,7 +14,6 @@ from dash.dependencies import Input, Output, State
 import string
 import wordcloud
 import base64
-import os
 
 
 key = '9b10678a5cd94c019126ee0b8d7880aa'
@@ -153,9 +152,7 @@ all_options = {
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-server = app.server
 app.config['suppress_callback_exceptions'] = True
-app.title='News Hub'
 
 ## Create Word Cloud 
 news_dict = requests.get('https://newsapi.org/v2/top-headlines?country=us&apiKey={}'.format(key)).json()
@@ -169,30 +166,8 @@ cloud_text=cloud_text.translate(translator)
 word_cloud = wordcloud.WordCloud(background_color='white')
 word_cloud.generate(cloud_text)
 word_cloud.to_file('assets/temp.png')
-image_filename = 'assets/temp.png' 
+image_filename = 'temp.png' 
 encoded_image = base64.b64encode(open(image_filename, 'rb').read())
-
-
-app.index_string = ''' 
-<!DOCTYPE html>
-<html>
-    <head>
-        {%metas%}
-        <title>News Hub</title>
-        {%favicon%}
-        {%css%}
-    </head>
-    <body>
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-        <div></div>
-    </body>
-</html>
-'''
 
 app.layout = html.Div([
         
@@ -231,7 +206,7 @@ def update_dropdown(option):
     except TypeError:
         c_value='abc-news'
         return c_value
-
+    
 @app.callback(Output('content','children'),
               [Input('submit-button', 'n_clicks')],
               [State('website-dropdown','value'),
@@ -241,7 +216,7 @@ def search_results(n_clicks,source,keyword):
     if keyword==None and source==None:
         url = 'https://newsapi.org/v2/top-headlines?country=us&apiKey={}'.format(key)
     elif keyword is not None and source==None:
-        url = 'https://newsapi.org/v2/everything?qInTitle={}&apiKey={}'.format(keyword,key)
+        url = 'https://newsapi.org/v2/top-headlines?country=us&q={}&apiKey={}'.format(keyword,key)
     else:
         url = 'https://newsapi.org/v2/everything?qInTitle={}&sources={}&apiKey={}'.format(keyword,source,key)
     
@@ -268,7 +243,7 @@ def search_results(n_clicks,source,keyword):
                               ],
                            style={'padding-top':'40px','width':'700px'}),
                     
-                    html.Hr(style={'width':'700px','position':'absolute','mergin-left':'350px'})
+                    html.Hr(style={'width':'700px','margin-left':'0px'})
                             ],
                     style={'list-style-type':'none'}
                         )
@@ -277,8 +252,10 @@ def search_results(n_clicks,source,keyword):
     except KeyError:
         children=['No article about {} found on {}'.format(keyword,all_options[source])]
     if len(children)==0:
-        children=['No article about {} found on {}'.format(keyword,all_options[source])]
-    
+        try:
+            children=['No article about {} found on {}'.format(keyword,all_options[source])]
+        except KeyError:
+            children=['No article about {} found'.format(keyword)]
         
    
     return children 
